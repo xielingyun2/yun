@@ -1,0 +1,512 @@
+java-openjdk【解释器】
+tomcat[java]
+ conf 配置文件 核心conf/server.xml
+ bin/shutdown.sh startup.sh
+ logs /日志 catalina.log
+ 
+tailf catalina.log
+webapps /ROOT/网页
+
+<Server port=8005>
+ <Service>
+    <Connector port="8080">
+     <Connector port ="8009">
+   <Connector port="8443".....keystoreFile="秘钥文件" keystorePass="123"/>
+       <Engine defaulthost="www.a.vom">
+        <Host name=www.a.com appbase="x">
+       <context path='' docbase="xie" />
+       <context path='/test' docbase="/var/www" />
+        <valve> prefix=xie_log suffix="a.txt"
+      </Host>
+     <Host name=www.a.com appbase="x">
+    </Host>
+   </Engine>
+  </Service>
+</Server>
+
+keytool---> 秘钥文件
+
+varnish 缓存
+ 
+CDN Content Delivery Network
+
+                            第六天
+版本控制
+
+svn git
+
+步骤一：安装Subversion服务器
+
+1）YUM安装subversion软件
+[root@web1 ~]# yum -y install subversion
+[root@web1 ~]# rpm -q subversion
+2)创建版本库
+[root@web1 ~]# mkdir /var/svn/ 
+[root@web1 ~]# svnadmin create /var/svn/project
+[root@web1 ~]# ls /var/svn/project/
+conf/  db/  format  hooks/  locks/  README.txt
+3）本地导入初始化数据
+[root@web1 ~]# cd /usr/lib/systemd/system/ 
+[root@web1 ~]# svn import . file:///var/svn/project/ -m "Init Data"
+
+cd /usr/lib/systemd/syste
+[root@web1 system]# svn import . file:///var/svn/project -m "init data"
+ -m 后是注释解释为什么改 . 是代表当前 /var/svn/project为非明文存储的
+
+[root@web1 var]# cd /var/svn/project/conf/
+[root@web1 conf]# ls
+authz  passwd  svnserve.conf
+
+[root@web1 conf]#vim svnserve.conf
+18 ### users have read and write access to the repository.
+ 19 anon-access = none
+ 20 auth-access = write
+ 21 ### The password-db option controls the location of the password
+ 22 ### database file.  Unless you specify a path starting with a /,
+ 23 ### the file's location is relative to the directory containing
+ 24 ### this configuration file.
+ 25 ### If SASL is enabled (see below), this file will NOT be used.
+ 26 ### Uncomment the line below to use the default password file.
+ 27 password-db = passwd
+ 28 ### The authz-db option controls the location of the authorization
+ 29 ### rules for path-based access control.  Unless you specify a path
+ 30 ### starting with a /, the file's location is relative to the the
+ 31 ### directory containing this file.  If you don't specify an
+ 32 ### authz-db, no path-based access control is done.
+ 33 ### Uncomment the line below to use the default authorization file.
+ 34 authz-db = authz
+ 35 ### This option specifies t
+
+[root@web1 conf]# vim passwd 
+[users]
+# harry = harryssecret
+# sally = sallyssecret
+harry = 123456
+tom = 123456
+~                                                                               
+~             
+
+[root@web1 conf]# vim authz
+27 # &joe = r
+ 28 # * =
+ 29 
+ 30 # [repository:/baz/fuz]
+ 31 # @harry_and_sally = rw
+ 32 # * = r
+ 33 [/]
+ 34 harry = rw
+ 35 tom = rw
+ 36 * = r
+-- 插入 --       
+ 
+5）启动服务
+[root@web1 ~]# svnserve -d  -r /var/svn/project
+#### -d 放入后台 -r 分享路径
+[root@web1 conf]# ss -nutlp | grep svnserve
+tcp    LISTEN     0      7         *:3690                  *:*                   users:(("svnserve",pid=4995,fd=3))
+
+
+svnserve -d -r /var/svn/project   共享一个仓库
+svnserve -d 回车= systemctl start svnserve  共享所有仓库
+客户端访问 svn ://192.168.2.100   共享一个仓库不用指定路径
+         svn://192.168.2.100/var/svn/project2  
+
+
+客户端：
+[root@web2 tmp]# svn  --username harry --password 123456 co svn://192.168.2.100 code
+ co checkout 简写
+
+[root@web2 code]# vim zram.service 
+[root@web2 code]# svn ci -m "weqwe" -m 为什么修改 备注
+正在发送       zram.service
+传输文件数据.
+提交后的版本为 2。
+
+svn update //将服务器上新的数据同步到本地
+[root@web2 code]# rm -rf *.service
+[root@web2 code]# ls -R | wc -l
+[root@web2 code]# svn update
+[root@web2 code]# ls -R | wc -l
+
+//查看版本仓库基本信息
+[root@web2 code]# svn info svn://192.168.2.100
+路径: .
+URL: svn://192.168.2.100
+版本库根: svn://192.168.2.100
+版本库 UUID: e30d5fec-1431-4c69-8f74-5d7446567935
+版本: 2
+节点种类: 目录
+最后修改的作者: harry
+最后修改的版本: 2
+最后修改的时间: 2018-06-01 11:56:57 +0800 (五, 2018-06-01)
+
+
+//查看版本仓库的日志
+[root@web2 code]# svn info svn://192.168.2.100
+路径: .
+URL: svn://192.168.2.100
+版本库根: svn://192.168.2.100
+版本库 UUID: e30d5fec-1431-4c69-8f74-5d7446567935
+版本: 2
+节点种类: 目录
+最后修改的作者: harry
+最后修改的版本: 2
+最后修改的时间: 2018-06-01 11:56:57 +0800 (五, 2018-06-01)
+
+[root@web2 code]# svn log svn://192.168.2.100
+------------------------------------------------------------------------
+r2 | harry | 2018-06-01 11:56:57 +0800 (五, 2018-06-01) | 1 行
+
+weqwe
+------------------------------------------------------------------------
+r1 | root | 2018-06-01 10:59:35 +0800 (五, 2018-06-01) | 1 行
+
+first
+
+[root@web2 code]# echo "test" > test.sh        //本地新建一个文件
+[root@web2 code]# svn ci -m "new file"            //提交失败，该文件不被svn管理
+[root@web2 code]# svn add test.sh                //将文件或目录加入版本控制
+[root@web2 code]# svn ci -m "new file"            //再次提交，成功
+
+[root@web2 code]# svn mkdir test
+A         test
+[root@web2 code]# svn ci -m "新增"
+正在增加       test
+
+提交后的版本为 4。
+[root@web2 code]# 
+
+ //使用svn删除文件
+[root@web2 code]# svn rm xiexie
+D         xiexie
+[root@web2 code]# ls xiexie
+ls: 无法访问xiexie: 没有那个文件或目录
+[root@web2 code]# svn ci -m "ll"
+正在删除       xiexie
+
+提交后的版本为 5。
+
+
+
+[root@web2 code]# svn diff umount.target        //仅查看某一个文件的差异
+/查看所有文件的差异
+[root@web2 code]# vim zram.service 
+[root@web2 code]# svn diff
+Index: zram.service
+===================================================================
+--- zram.service	(版本 2)
++++ zram.service	(工作副本)
+@@ -9,3 +9,4 @@
+ ExecStop=/usr/libexec/anaconda/zramswapoff
+ RemainAfterExit=yes
+ sadasdasdas
++heheheheheheheheheheheheeh
+
+[root@web2 code]# svn cat svn://192.168.2.100/zram.service//查看服务器文件的内容
+
+[root@web2 code]# sed -i 'd' tmp.mount //删除文件所有内容，但未提交
+[root@web2 code]# svn revert tmp.mount  //还原tmp.mount文件
+已恢复“tmp.mount”
+[root@web2 code]# 
+
+
+[root@web2 code]# sed -i 'ia#hahahaha##' tuned.service 
+[root@web2 code]# svn ci -m "xxx"
+正在发送       tuned.service
+正在发送       zram.service
+传输文件数据..
+提交后的版本为 6。
+
+[root@web2 code]# sed -i '1a #test###' tuned.service
+//修改本地副本中的代码文件
+[root@web2 code]# svn ci  -m  "xxx"
+//提交代码
+[root@web2 code]# svn merge -r7:2    tuned.service    
+//将文件从版本7还原到版本2
+
+[root@web2 tmp]# svn -r2 co svn://192.168.2.100 abc 下载制定版本
+A    abc/plymouth-switch-root.service
+A    abc/systemd-ask-password-wall.service
+取出版本 2。
+
+
+修改相同文件相同行
+[root@web1 xie]# sed -i '1c [UNIR]' tuned.service
+[root@web1 xie]# svn ci -m 'xx'
+正在发送       tuned.service
+传输文件数据.
+提交后的版本为 11。
+
+
+[root@web2 abc]# sed -i '1c [unit]' tuned.service 
+[root@web2 abc]# svn update
+正在升级 '.':
+在 “/tmp/abc/tuned.service” 中发现冲突。
+选择: (p) 推迟，(df) 显示全部差异，(e) 编辑,
+        (mc) 我的版本, (tc) 他人的版本,
+        (s) 显示全部选项: p
+C    tuned.service
+更新到版本 11。
+冲突概要：
+  正文冲突：1
+[root@web2 abc]# ls tuned.service*
+tuned.service  tuned.service.mine  tuned.service.r10  tuned.service.r11
+
+[root@web2 abc]# head tuned.service
+<<<<<<< .mine
+[unit]
+=======
+[UNIR]
+>>>>>>> .r11
+[Unit]
+a#hahahaha##
+Description=Dynamic System Tuning Daemon
+a#hahahaha##
+After=syslog.target systemd-sysctl.service network.target
+
+[root@web2 abc]# mv tuned.service.mine tuned.service
+mv：是否覆盖"tuned.service"？ yes
+[root@web2 abc]# rm -rf tuned.service.*
+
+使用dump指令备份版本库数据
+
+[root@web1 ~]# svnadmin dump /var/svn/project > project.bak  //备份
+[root@web1 xie]# svnadmin dump /var/svn/project> project.haha
+* 已转存版本 0。
+* 已转存版本 1。
+* 已转存版本 2。
+* 已转存版本 3。
+* 已转存版本 4。
+* 已转存版本 5。
+* 已转存版本 6。
+* 已转存版本 7。
+* 已转存版本 8。
+* 已转存版本 9。
+* 已转存版本 10。
+* 已转存版本 11。
+
+     //还原
+[root@web1 xie]# svnadmin create /var/svn/project1
+[root@web1 xie]# svnadmin load /var/svn/project1 < pro
+proc-fs-nfsd.mount                 proc-sys-fs-binfmt_misc.mount
+proc-sys-fs-binfmt_misc.automount  project.haha
+[root@web1 xie]# svnadmin load /var/svn/project1 < project.haha 
+
+www.github.com
+https://github.com/xielingyun2/yun
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
